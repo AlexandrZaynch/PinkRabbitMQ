@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <amqpcpp.h>
+#include "RabbitMQClient.h"
 
 struct SimplePocoHandlerImpl;
 class SimplePocoHandler: public AMQP::ConnectionHandler
@@ -10,14 +11,18 @@ class SimplePocoHandler: public AMQP::ConnectionHandler
 public:
 
     static constexpr size_t BUFFER_SIZE = 8 * 1024 * 1024; //8Mb
-    static constexpr size_t TEMP_BUFFER_SIZE = 1024 * 1024; //1Mb
+    static constexpr size_t TEMP_BUFFER_SIZE = 1 * 1024 * 1024; //1Mb
 
     SimplePocoHandler(const std::string& host, uint16_t port);
     virtual ~SimplePocoHandler();
 
     void loop();
-	void loop(uint16_t timeout);
+	void quitRead();
+	void resetQuitRead();
+	void loopRead();
+	static void loopThread(SimplePocoHandler* clazz);
     void quit();
+	void loopIteration();
 
     bool connected() const;
 
@@ -26,7 +31,6 @@ private:
     SimplePocoHandler(const SimplePocoHandler&) = delete;
     SimplePocoHandler& operator=(const SimplePocoHandler&) = delete;
 
-	void loopIteration();
 	void sendDataFromBuffer();
     void close();
 

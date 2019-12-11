@@ -27,8 +27,7 @@ namespace
 			}
 
 			const size_t length = (size + m_use);
-			size_t write =
-				length < m_data.size() ? size : m_data.size() - m_use;
+			size_t write = length < m_data.size() ? size : m_data.size() - m_use;
 			memcpy(m_data.data() + m_use, data, write);
 			m_use += write;
 			return write;
@@ -70,6 +69,7 @@ struct SimplePocoHandlerImpl
 		connected(false),
 		connection(nullptr),
 		quit(false),
+		quitRead(false),
 		inputBuffer(SimplePocoHandler::BUFFER_SIZE),
 		outBuffer(SimplePocoHandler::BUFFER_SIZE),
 		tmpBuff(SimplePocoHandler::TEMP_BUFFER_SIZE)
@@ -80,6 +80,7 @@ struct SimplePocoHandlerImpl
 	bool connected;
 	AMQP::Connection* connection;
 	bool quit;
+	bool quitRead;
 	Buffer inputBuffer;
 	Buffer outBuffer;
 	std::vector<char> tmpBuff;
@@ -89,6 +90,9 @@ SimplePocoHandler::SimplePocoHandler(const std::string& host, uint16_t port) :
 {
 	const Poco::Net::SocketAddress address(host, port);
 	m_impl->socket.connect(address);
+	m_impl->socket.setBlocking(false);
+	m_impl->socket.setSendBufferSize(TEMP_BUFFER_SIZE);
+	m_impl->socket.setReceiveBufferSize(TEMP_BUFFER_SIZE);
 	m_impl->socket.setKeepAlive(true);
 }
 
@@ -97,31 +101,26 @@ SimplePocoHandler::~SimplePocoHandler()
 	close();
 }
 
-void SimplePocoHandler::loop(uint16_t timeout)
-{
-	std::chrono::milliseconds timeoutSec{ timeout };
-	auto end = std::chrono::system_clock::now() + timeoutSec;
+void SimplePocoHandler::loopThread(SimplePocoHandler* clazz) {
+	clazz->resetQuitRead();
+	clazz->loopRead();
+}
 
-	// 
+void SimplePocoHandler::loopRead()
+{
+
 	try
 	{
-		while (!m_impl->quit && (end - std::chrono::system_clock::now()).count() > 0)
+		while (!m_impl->quitRead)
 		{
 			loopIteration();
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
-
-		if (m_impl->quit && m_impl->outBuffer.available())
-		{
-			sendDataFromBuffer();
-		}
-
 	}
 	catch (const Poco::Exception& exc)
 	{
 		std::cerr << "Poco exception " << exc.displayText();
 	}
-	m_impl->quit = false; // reset channel for repeatable using
 }
 
 void SimplePocoHandler::loop()
@@ -186,6 +185,16 @@ void SimplePocoHandler::loopIteration() {
 void SimplePocoHandler::quit()
 {
 	m_impl->quit = true;
+}
+
+void SimplePocoHandler::quitRead()
+{
+	m_impl->quitRead = true;
+}
+
+void SimplePocoHandler::resetQuitRead()
+{
+	m_impl->quitRead = false;
 }
 
 void SimplePocoHandler::SimplePocoHandler::close()

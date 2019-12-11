@@ -27,7 +27,7 @@ public:
 		ePropClusterId = 8,
 		ePropExpiration = 9,
 		ePropReplyTo = 10,
-        ePropLast = 11      // Always last
+        ePropLast = 11 // Always last
     };
 
     enum Methods
@@ -46,7 +46,9 @@ public:
 		eMethDeclareExchange = 11,
 		eMethDeleteExchange = 12,
 		eMethUnbindQueue = 13,
-        eMethLast = 14      // Always last
+		eMethSetPriority = 14,
+		eMethGetPriority = 15,
+        eMethLast = 16      // Always last
     };
 
     CAddInNative(void);
@@ -80,6 +82,7 @@ public:
     // LocaleBase
     virtual void ADDIN_API SetLocale(const WCHAR_T* loc);
 	void CAddInNative::setWStringToTVariant(tVariant* dest, const wchar_t* source);
+	void CAddInNative::setStringToTVariant(tVariant* dest, std::string source);
     
 private:
 
@@ -92,6 +95,7 @@ private:
 	bool getLastError(tVariant* pvarRetValue);
 	bool basicConsume(tVariant* pvarRetValue, tVariant* paParams);
 	bool basicConsumeMessage(tVariant* pvarRetValue, tVariant* paParams);
+	bool getPriority(tVariant* pvarRetValue, tVariant* paParams);
 	bool declareQueue(tVariant* pvarRetValue, tVariant* paParams);
 	bool validateConnect(tVariant* paParams, long const lMethodNum, long const lSizeArray);
 	bool validateBasicPublish(tVariant* paParams, long const lMethodNum, long const lSizeArray);
@@ -106,7 +110,7 @@ private:
     IAddInDefBase      *m_iConnect;
     IMemoryManager     *m_iMemory;
 
-	const wchar_t*      m_version = L"1.4";
+	const wchar_t*      m_version = L"1.7";
 };
 
 class WcharWrapper
